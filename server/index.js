@@ -18,13 +18,30 @@ class SnapdropServer {
 
     constructor(port) {
         const WebSocket = require('ws');
-        this._wss = new WebSocket.Server({ port: port });
+        const http = require('http');
+
+        // Create HTTP server
+        const server = http.createServer((req, res) => this._onHttpRequest(req, res));
+        
+        // Create WebSocket server
+        this._wss = new WebSocket.Server({ server: server });
         this._wss.on('connection', (socket, request) => this._onConnection(new Peer(socket, request)));
         this._wss.on('headers', (headers, response) => this._onHeaders(headers, response));
 
         this._rooms = {};
 
-        console.log('Snapdrop is running on port', port);
+        server.listen(port, () => {
+            console.log('Snapdrop is running on port', port);
+        });
+    }
+
+    _onHttpRequest(req, res) {
+        if (req.url === '/' || req.url === '') {
+            res.writeHead(302, {
+                'Location': 'https://moeyy.cn/drop/'
+            });
+            res.end();
+        }
     }
 
     _onConnection(peer) {
